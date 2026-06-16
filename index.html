@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Portal Squad Midas | Home</title>
+  <title>Portal Operação | Home</title>
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
     :root{
@@ -211,7 +211,7 @@
 <nav id="sb">
   <div class="sb-hd">
     <div class="sb-logo">🏅</div>
-    <div class="sb-brand">Squad Midas<small>Muniz &amp; Co.</small></div>
+    <div class="sb-brand">Portal Operação<small>Muniz &amp; Co.</small></div>
   </div>
   <div class="sb-scroll">
     <div class="sb-sec">Portal</div>
@@ -311,7 +311,7 @@
   <div id="pgHelp">
     <div class="help-inner">
       <h1>Ajuda &amp; Documentação</h1>
-      <p class="sub">Portal Squad Midas — Muniz &amp; Co. · Versão 1.0 · Junho 2026</p>
+      <p class="sub">Portal Operação — Muniz &amp; Co. · Versão 1.0 · Junho 2026</p>
 
       <div class="help-section">
         <h2>Dashboards disponíveis</h2>
@@ -422,39 +422,12 @@ const DASHBOARDS = [
     ]
   },
   {
-    id:'meetime', title:'Meetime', icon:'📞', tag:'Comercial', color:'#E67E22',
-    desc:'Performance comercial: ligações, reuniões e funil de vendas.',
-    url:'https://meetime-v2.vercel.app/',
-    kpis:[
-      {lbl:'Total leads',  id:'leads',  meta:'',     mockVal:null},
-      {lbl:'Conexões',     id:'conn',   meta:'',     mockVal:null},
-    ]
-  },
-  {
     id:'ekyte', title:'Ekyte — Projetos', icon:'⚙️', tag:'Gestão', color:'#16A085',
     desc:'Orçado vs. gasto por cliente, horas por squad e status de demandas.',
     url:'https://ekyte-dashboard.vercel.app',
     kpis:[
       {lbl:'Projetos ativos', id:'proj',  meta:'', mockVal:null},
       {lbl:'Horas usadas',    id:'hours', meta:'', mockVal:null},
-    ]
-  },
-  {
-    id:'kommo', title:'Analytics Kommo', icon:'📈', tag:'CRM', color:'#2980B9',
-    desc:'Leads, pipeline e indicadores de conversão no CRM Kommo.',
-    url:'https://fvsilva.github.io/dashK/#/',
-    kpis:[
-      {lbl:'Leads ativos', id:'la',   meta:'', mockVal:null},
-      {lbl:'Tx. conversão',id:'conv', meta:'', mockVal:null},
-    ]
-  },
-  {
-    id:'vendas', title:'Gestão de Vendas', icon:'⚡', tag:'SDR', color:'#27AE60',
-    desc:'Atividades SDR por canal (ligação, e-mail, WhatsApp), WON e tendência mensal.',
-    url:'https://dashboard-copa-energia.onrender.com/',
-    kpis:[
-      {lbl:'WON mês',         id:'won',  meta:'', mockVal:null},
-      {lbl:'Total atividades',id:'acts', meta:'', mockVal:null},
     ]
   },
 ];
@@ -478,7 +451,7 @@ const EK_PRXY = 'https://corsproxy.io/?url=';
 /* ── State ── */
 let sbCol=false, curView='home', curTab='report', selPrio='medium';
 const OB_STEPS = [
-  {title:'Bem-vindo ao Portal Squad Midas 🏅', desc:'Hub centralizado de todos os dashboards do squad. Aqui você encontra dados, alertas e acesso rápido a cada ferramenta.', target:null},
+  {title:'Bem-vindo ao Portal Operação 🏅', desc:'Hub centralizado de todos os dashboards do squad. Aqui você encontra dados, alertas e acesso rápido a cada ferramenta.', target:null},
   {title:'Cards de Dashboard', desc:'Cada card mostra o status em tempo real, KPIs resumidos e botão de acesso direto. Clique no card ou em "Abrir Dashboard".', target:'cardsGrid'},
   {title:'Painel de Alertas', desc:'Aqui aparecem automaticamente os clientes críticos consolidados de todos os dashboards — Health Score, ROI e NPS.', target:'alertsPanel'},
   {title:'Filtros Globais', desc:'Use os filtros de Período e GP para filtrar todos os dashboards simultaneamente. A seleção é propagada ao abrir cada dash.', target:null},
@@ -538,11 +511,11 @@ function go(id) {
   if (id === 'home') {
     home.style.display = 'block';
     bc.innerHTML = '<span class="cur">Home</span>';
-    document.title = 'Portal Squad Midas | Home';
+    document.title = 'Portal Operação | Home';
   } else if (id === 'help') {
     help.classList.add('act');
     bc.innerHTML = `<a onclick="go('home')">Portal</a><span class="sep">›</span><span class="cur">Ajuda</span>`;
-    document.title = 'Portal Squad Midas | Ajuda';
+    document.title = 'Portal Operação | Ajuda';
   } else {
     const d = DASHBOARDS.find(x=>x.id===id);
     if (!d) return;
@@ -555,7 +528,7 @@ function go(id) {
 
     dash.classList.add('act');
     bc.innerHTML = `<a onclick="go('home')">Portal</a><span class="sep">›</span><span class="cur">${d.title}</span>`;
-    document.title = `Portal Squad Midas | ${d.title}`;
+    document.title = `Portal Operação | ${d.title}`;
     const fr = document.getElementById('dashFr');
     if (fr.src !== finalUrl) fr.src = finalUrl;
   }
