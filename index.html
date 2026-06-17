@@ -297,6 +297,37 @@
     }
     .logout-btn:hover{background:rgba(239,68,68,.1)}
 
+    /* ════════════════ LOGIN ════════════════ */
+    #loginScreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:0}
+    #loginScreen.show{display:flex}
+    .login-box{background:var(--s1);border:1px solid #280505;border-radius:16px;width:100%;max-width:380px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.8);margin:16px}
+    .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+    .login-logo-ico{width:38px;height:38px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 0 16px var(--glow)}
+    .login-logo-txt{font-size:1rem;font-weight:800;line-height:1.2}
+    .login-logo-txt small{display:block;color:var(--t2);font-weight:400;font-size:.72rem}
+    .login-box h2{font-size:1.05rem;font-weight:800;margin-bottom:4px}
+    .login-box p{font-size:.78rem;color:var(--t2);margin-bottom:22px}
+    .login-fld{margin-bottom:14px}
+    .login-fld label{display:block;font-size:.7rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+    .login-fld input{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--txt);border-radius:8px;padding:10px 12px;font-size:.88rem;font-family:inherit;outline:none;transition:border-color .14s}
+    .login-fld input:focus{border-color:var(--red)}
+    .login-err{font-size:.75rem;color:#f87171;margin-bottom:10px;display:none}
+    .login-err.show{display:block}
+    .btn-login{width:100%;padding:11px;border:none;border-radius:8px;background:var(--red);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .17s;margin-top:4px}
+    .btn-login:hover{background:var(--red2);box-shadow:0 0 14px var(--glow)}
+    /* avatar no topbar */
+    .user-chip{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--b2);border-radius:20px;padding:4px 12px 4px 5px;cursor:pointer;transition:all .14s}
+    .user-chip:hover{background:var(--s3)}
+    .user-av{width:24px;height:24px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0}
+    .user-name{font-size:.76rem;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .user-menu{position:absolute;top:48px;right:0;background:var(--s1);border:1px solid var(--b2);border-radius:10px;padding:6px;min-width:160px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:100;display:none}
+    .user-menu.open{display:block}
+    .user-menu-item{padding:8px 12px;border-radius:7px;font-size:.8rem;cursor:pointer;color:var(--t2);transition:all .13s}
+    .user-menu-item:hover{background:var(--s2);color:var(--txt)}
+    .user-menu-item.danger{color:#f87171}
+    .user-menu-item.danger:hover{background:rgba(239,68,68,.1)}
+    .user-wrap{position:relative}
+
     /* ════════════════ TOAST ════════════════ */
     #toast{position:fixed;bottom:20px;right:20px;background:var(--s1);border:1px solid var(--b2);border-radius:9px;padding:10px 15px;font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:7px;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:400;opacity:0;transform:translateY(14px);transition:all .24s;pointer-events:none}
     #toast.show{opacity:1;transform:translateY(0)}
@@ -400,6 +431,16 @@
       <button class="hbtn hbtn-g" id="btnRefresh" onclick="refreshAll()">⟳ Atualizar</button>
       <button class="hbtn hbtn-r" onclick="openModal('report')">🚨 Problema</button>
       <button class="hbtn hbtn-m" onclick="openModal('suggest')">✉️ Sugestão</button>
+      <div class="user-wrap">
+        <div class="user-chip" id="userChip" onclick="toggleUserMenu()">
+          <div class="user-av" id="userAv">?</div>
+          <span class="user-name" id="userName">—</span>
+        </div>
+        <div class="user-menu" id="userMenu">
+          <div class="user-menu-item" id="userMenuEmail" style="color:var(--t3);cursor:default;font-size:.72rem"></div>
+          <div class="user-menu-item danger" onclick="doLogout()">Sair</div>
+        </div>
+      </div>
 
       <!-- Avatar + logout -->
       <div class="avatar-wrap">
@@ -572,6 +613,30 @@
 
 <div id="toast"></div>
 
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="show">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-ico">📊</div>
+      <div class="login-logo-txt">Portal Operação<small>Muniz &amp; Co.</small></div>
+    </div>
+    <h2>Bem-vindo 👋</h2>
+    <p>Use seu e-mail V4 Company para acessar</p>
+    <form onsubmit="doLogin(event)">
+      <div class="login-fld">
+        <label>Nome completo</label>
+        <input id="lName" type="text" placeholder="Seu nome" required autocomplete="name"/>
+      </div>
+      <div class="login-fld">
+        <label>E-mail V4 Company</label>
+        <input id="lEmail" type="email" placeholder="nome@v4company.com" required autocomplete="email"/>
+      </div>
+      <div class="login-err" id="lErr">Use um e-mail @v4company.com</div>
+      <button type="submit" class="btn-login">Entrar no Portal →</button>
+    </form>
+  </div>
+</div>
+
 <script>
 /* ══════════════════════════════════════════
    CONFIG — 4 dashboards do briefing
@@ -626,6 +691,10 @@ const ALERTS = [
 ];
 const CHIP={multi:'🔴 Múltiplos alertas',red:'⚠️ Health crítico',orange:'🟠 ROI baixo',purple:'🟣 NPS detrator'};
 
+/* ── Google Sheets ── */
+const SHEET_ID  = '1h_xqibv32XTY-uBvxegifAcjYVjwpny-pJ7oBFzszvg';
+const SHEET_KEY = ''; // ← cole aqui a API Key quando tiver
+
 /* ── Ekyte API ── */
 const EK_KEY  = '1fb16b48a6f5c84d655dbcb9719be21afd030b2480cbcd27cc50ff90481f7ce8';
 const EK_WSP  = '5073';
@@ -656,76 +725,48 @@ const OB_STEPS=[
 let obStep=0;
 
 /* ══════════ LOGIN ══════════ */
-function initLogin(){
-  const user = getSavedUser();
-  if(user){
-    applyUser(user);
-    document.getElementById('loginScreen').classList.add('hidden');
-    init();
-  }
-  // Se não há usuário salvo, a login screen fica visível
-}
-
-function getSavedUser(){
-  try{
-    const u = localStorage.getItem('v4_user');
-    return u ? JSON.parse(u) : null;
-  }catch{ return null; }
+function checkAuth(){
+  const user = JSON.parse(localStorage.getItem('portal_user')||'null');
+  if(user){ applyUser(user); document.getElementById('loginScreen').classList.remove('show'); return true; }
+  return false;
 }
 
 function doLogin(e){
   e.preventDefault();
-  const name  = document.getElementById('loginName').value.trim();
-  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const errEl = document.getElementById('loginErr');
-  const emailInput = document.getElementById('loginEmail');
-
-  // Valida domínio @v4company.com
-  if(!email.endsWith('@v4company.com')){
-    errEl.classList.add('show');
-    emailInput.classList.add('err-input');
-    emailInput.focus();
-    return;
-  }
-  errEl.classList.remove('show');
-  emailInput.classList.remove('err-input');
-
+  const name  = document.getElementById('lName').value.trim();
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  const err   = document.getElementById('lErr');
+  if(!email.endsWith('@v4company.com')){ err.classList.add('show'); return; }
+  err.classList.remove('show');
   const user = {name, email};
-  localStorage.setItem('v4_user', JSON.stringify(user));
+  localStorage.setItem('portal_user', JSON.stringify(user));
   applyUser(user);
-  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('show');
   init();
 }
 
 function applyUser(user){
-  // Iniciais para o avatar
-  const parts = user.name.trim().split(' ');
-  const initials = parts.length >= 2
-    ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
-    : user.name.slice(0,2).toUpperCase();
-
-  document.getElementById('avatarInitial').textContent = initials;
-  document.getElementById('avatarName').textContent    = parts[0];
-  document.getElementById('dropName').textContent      = user.name;
-  document.getElementById('dropEmail').textContent     = user.email;
-}
-
-function toggleLogout(){
-  document.getElementById('logoutDrop').classList.toggle('open');
+  const parts    = user.name.trim().split(' ');
+  const initials = (parts.length>=2 ? parts[0][0]+parts[parts.length-1][0] : user.name.slice(0,2)).toUpperCase();
+  document.getElementById('userAv').textContent        = initials;
+  document.getElementById('userName').textContent      = parts[0];
+  document.getElementById('userMenuEmail').textContent = user.email;
+  const fe=document.getElementById('fE'); if(fe&&!fe.value) fe.value=user.email;
+  const fn=document.getElementById('fN'); if(fn&&!fn.value) fn.value=user.name;
 }
 
 function doLogout(){
-  localStorage.removeItem('v4_user');
+  localStorage.removeItem('portal_user');
   localStorage.removeItem('ob_done');
-  location.reload();
+  document.getElementById('userMenu').classList.remove('open');
+  document.getElementById('loginScreen').classList.add('show');
+  document.getElementById('lEmail').value='';
+  document.getElementById('lName').value='';
 }
 
-// Fecha dropdown ao clicar fora
+function toggleUserMenu(){ document.getElementById('userMenu').classList.toggle('open'); }
 document.addEventListener('click', e=>{
-  const wrap = document.querySelector('.avatar-wrap');
-  if(wrap && !wrap.contains(e.target)){
-    document.getElementById('logoutDrop').classList.remove('open');
-  }
+  if(!e.target.closest('.user-wrap')) document.getElementById('userMenu')?.classList.remove('open');
 });
 
 /* ══════════ INIT ══════════ */
@@ -738,6 +779,16 @@ function init(){
   setUpdTime();
   go('home');
   if(!localStorage.getItem('ob_done')) setTimeout(obStart,900);
+  // preenche campos do ticket com dados do usuário
+  const user = JSON.parse(localStorage.getItem('portal_user')||'null');
+  if(user) applyUser(user);
+}
+
+/* ══════════ BOOT ══════════ */
+if(!checkAuth()){
+  // aguarda login — init() chamado no doLogin()
+} else {
+  init();
 }
 
 /* ══════════ SIDEBAR ══════════ */
