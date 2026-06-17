@@ -693,7 +693,7 @@ const CHIP={multi:'🔴 Múltiplos alertas',red:'⚠️ Health crítico',orange:
 
 /* ── Google Sheets ── */
 const SHEET_ID  = '1h_xqibv32XTY-uBvxegifAcjYVjwpny-pJ7oBFzszvg';
-const SHEET_KEY = ''; // ← cole aqui a API Key quando tiver
+const SHEET_KEY = 'AIzaSyD-RwL_d2RPC6JKLnv3_xZ8wAeFy26gV6o';
 
 /* ── Ekyte API ── */
 const EK_KEY  = '1fb16b48a6f5c84d655dbcb9719be21afd030b2480cbcd27cc50ff90481f7ce8';
@@ -704,6 +704,203 @@ const EK_PRXY = 'https://corsproxy.io/?url=';
 /* ── Cache KPIs 5 min (§6) ── */
 const KPI_CACHE_MS = 5 * 60 * 1000;
 let kpiCacheTime = null;
+let sheetsCache  = {}; // { sheetName: { rows, ts } }
+let lastSheetTimestamps = {}; // { sheetName: Date }
+
+/* ════════════════════════════════════════
+   GOOGLE SHEETS — fetch + parse + KPIs
+════════════════════════════════════════ */
+async function fetchSheet(sheetName, force=false) {
+  const now = Date.now();
+  const cached = sheetsCache[sheetName];
+  if (!force && cached && (now - cached.ts) < KPI_CACHE_MS) return cached.rows;
+
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName)}?key=${SHEET_KEY}`;
+  const res  = await fetch(url);
+  if (!res.ok) throw new Error(`Sheets ${sheetName}: HTTP ${res.status}`);
+  const json = await res.json();
+  const raw  = json.values || [];
+  if (raw.length < 2) return [];
+
+  const headers = raw[0].map(h => h.trim().toLowerCase());
+  const rows    = raw.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (r[i] || '').trim());
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+
+  sheetsCache[sheetName] = { rows, ts: now };
+  lastSheetTimestamps[sheetName] = new Date();
+  return rows;
+}
+
+function parseNum(v) {
+  if (!v) return null;
+  const s = String(v).replace(',', '.').replace(/[^0-9.\-]/g, '');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function parseBRL(v) {
+  if (!v) return null;
+  const s = String(v).replace(/R\$|\s/g, '').replace('.', '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+/* ── Calcula todos os KPIs reais ── */
+async function calcRealKPIs(force=false) {
+  const gp = document.getElementById('fGP')?.value || 'todos';
+
+  try {
+    /* ── 1. HEALTH SCORE ── */
+    const hsRows = await fetchSheet('BD_Health Score', force);
+    const hsFilt = gp === 'todos' ? hsRows
+      : hsRows.filter(r => (r.gp || '').toLowerCase().includes(gp.toLowerCase()));
+
+    // pega período mais recente
+    const hsDates = [...new Set(hsFilt.map(r => r.data || r.período || r.periodo).filter(Boolean))];
+    const hsLatest = hsDates.sort().reverse()[0];
+    const hsLatestRows = hsFilt.filter(r => (r.data||r.período||r.periodo) === hsLatest);
+
+    const hsScores = hsLatestRows
+      .map(r => parseNum(r['health score'] || r['healthscore']))
+      .filter(v => v !== null);
+    const hsCrit    = hsScores.filter(v => v < 4.0);
+    const hsAvg     = hsScores.length ? (hsScores.reduce((a,b)=>a+b,0)/hsScores.length).toFixed(1) : null;
+    const hsCritPct = hsScores.length ? Math.round(hsCrit.length/hsScores.length*100) : 0;
+
+    setKPI('hs','hs_crit', hsCrit.length > 0 ? `${hsCrit.length}` : '0',
+      `${hsCritPct}% da carteira`);
+    setKPI('hs','hs_avg', hsAvg ?? '—', hsLatest || '');
+
+    /* ── 2. RESULTADOS ── */
+    const resRows = await fetchSheet('BD_resultados', force);
+    const resFilt = gp === 'todos' ? resRows
+      : resRows.filter(r => (r.gp || '').toLowerCase().includes(gp.toLowerCase()));
+
+    const resDates  = [...new Set(resFilt.map(r => r.data).filter(Boolean))];
+    const resLatest = resDates.sort().reverse()[0];
+    const resLatestRows = resFilt.filter(r => r.data === resLatest);
+
+    let roiOk=0, roiTotal=0, fatR=0, fatP=0;
+    resLatestRows.forEach(r => {
+      const rP = parseNum(r.roi_p), rR = parseNum(r.roi_r);
+      const fR = parseBRL(r.faturamento_r), fP = parseBRL(r.faturamento_p);
+      if (rP !== null && rR !== null) { roiTotal++; if (rR >= rP * 0.7) roiOk++; }
+      if (fR !== null) fatR += fR;
+      if (fP !== null) fatP += fP;
+    });
+    const roiPct = roiTotal ? Math.round(roiOk/roiTotal*100) : null;
+    const fatStr = fatP > 0
+      ? `R$ ${(fatR/1000000).toFixed(1)}M / R$ ${(fatP/1000000).toFixed(1)}M`
+      : '—';
+
+    setKPI('res','roi_pct', roiPct !== null ? `${roiPct}%` : '—', 'mês atual');
+    setKPI('res','fat', fatStr, 'realizado vs meta');
+
+    /* ── 3. NPS / CSAT ── */
+    const npsRows = await fetchSheet('Satisfação_BD', force);
+    const npsFilt = gp === 'todos' ? npsRows
+      : npsRows.filter(r => (r.gp || '').toLowerCase().includes(gp.toLowerCase()));
+
+    const npsDates  = [...new Set(npsFilt.map(r => r['data (período)']||r.periodo||r.data).filter(Boolean))];
+    const npsLatest = npsDates.sort().reverse()[0];
+    const npsLatestRows = npsFilt.filter(r =>
+      (r['data (período)']||r.periodo||r.data) === npsLatest);
+
+    const npsScores  = npsLatestRows.map(r => parseNum(r['nota (nps)']||r['nota']||r.nps)).filter(v=>v!==null);
+    const csatScores = npsLatestRows.map(r => parseNum(r['geral']||r['csat geral']||r.csat_geral)).filter(v=>v!==null);
+
+    const promoters  = npsScores.filter(v=>v>=9).length;
+    const detractors = npsScores.filter(v=>v<=6).length;
+    const npsVal     = npsScores.length ? Math.round((promoters-detractors)/npsScores.length*100) : null;
+    const csatVal    = csatScores.length ? (csatScores.reduce((a,b)=>a+b,0)/csatScores.length).toFixed(1) : null;
+
+    const npsMeta = npsVal !== null ? (npsVal>=65 ? '↑ meta 65':'↓ meta 65') : '';
+    const csatMeta= csatVal !== null ? (parseFloat(csatVal)>=4.5?'↑ meta 4,5':'↓ meta 4,5') : '';
+
+    setKPI('nps','nps_avg',  npsVal  !== null ? `${npsVal}` : '—', npsMeta);
+    setKPI('nps','csat_avg', csatVal !== null ? `${csatVal}` : '—', csatMeta);
+
+    /* ── 4. Alertas reais ── */
+    buildRealAlerts(hsLatestRows, resLatestRows, npsLatestRows);
+
+    /* ── timestamp mais antigo ── */
+    updateTimestamp();
+
+  } catch(err) {
+    console.error('[Sheets]', err);
+    toast('⚠️ Erro ao carregar dados das planilhas: ' + err.message, 'err');
+  }
+}
+
+function setKPI(dashId, kpiId, val, meta) {
+  const ve = document.getElementById(`kv-${dashId}-${kpiId}`);
+  const me = document.getElementById(`km-${dashId}-${kpiId}`);
+  if (ve) { ve.className = 'kval'; ve.textContent = val; }
+  if (me) { me.className = 'kmeta'; me.textContent = meta; }
+}
+
+/* ── Gera alertas reais a partir dos dados ── */
+function buildRealAlerts(hsRows, resRows, npsRows) {
+  const alertMap = {}; // cliente -> { types: [], meta: [] }
+
+  const add = (cliente, type, meta, dash) => {
+    if (!cliente) return;
+    if (!alertMap[cliente]) alertMap[cliente] = { types:[], metas:[], dash };
+    alertMap[cliente].types.push(type);
+    alertMap[cliente].metas.push(meta);
+  };
+
+  // HS crítico < 4.0
+  hsRows.forEach(r => {
+    const hs = parseNum(r['health score']||r['healthscore']);
+    if (hs !== null && hs < 4.0)
+      add(r.cliente, 'red', `HS ${hs.toFixed(1)}`, 'hs');
+  });
+
+  // ROI < 70% da meta
+  resRows.forEach(r => {
+    const rP = parseNum(r.roi_p), rR = parseNum(r.roi_r);
+    if (rP && rR && rR < rP * 0.7)
+      add(r.cliente, 'orange', `ROI ${Math.round(rR/rP*100)}% da meta`, 'res');
+  });
+
+  // NPS detrator ≤ 6
+  npsRows.forEach(r => {
+    const n = parseNum(r['nota (nps)']||r['nota']||r.nps);
+    if (n !== null && n <= 6)
+      add(r.cliente, 'purple', `NPS ${n}`, 'nps');
+  });
+
+  // Monta lista de alertas
+  const list = Object.entries(alertMap).map(([nome, info]) => {
+    const multi = info.types.length > 1;
+    return {
+      type:  multi ? 'multi' : info.types[0],
+      name:  nome,
+      meta:  info.metas.join(' · '),
+      dash:  info.dash,
+    };
+  });
+
+  // Ordena: multi primeiro
+  list.sort((a,b) => (a.type==='multi'?-1:1) - (b.type==='multi'?-1:1));
+
+  // Atualiza ALERTS e re-renderiza
+  ALERTS.length = 0;
+  list.forEach(a => ALERTS.push(a));
+  renderAlerts();
+}
+
+function updateTimestamp() {
+  const dates = Object.values(lastSheetTimestamps);
+  if (!dates.length) return;
+  const oldest = new Date(Math.min(...dates.map(d=>d.getTime())));
+  document.getElementById('updTxt').textContent =
+    `Dados atualizados em ${oldest.toLocaleDateString('pt-BR')} ${oldest.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+}
 
 /* ── State ── */
 let sbCol=false, curView='home', curTab='report', selPrio='medium';
@@ -988,39 +1185,22 @@ function checkGlobalErr(){
   }
 }
 
-/* KPIs com cache de 5 min (§6) */
+/* KPIs com cache de 5 min (§6) — lê Google Sheets reais */
 function loadKPIs(force=false){
   const now=Date.now();
   if(!force && kpiCacheTime && (now-kpiCacheTime)<KPI_CACHE_MS) return;
   kpiCacheTime=now;
-
-  // KPIs baseados nos dados reais quando disponíveis (integrar com Google Sheets)
-  const vals={
-    hs_crit: {v:'—',  m:'Aguardando API'},
-    hs_avg:  {v:'—',  m:'Aguardando API'},
-    roi_pct: {v:'—',  m:'Aguardando API'},
-    fat:     {v:'—',  m:'Aguardando API'},
-    nps_avg: {v:'72', m:'↑ vs meta 65'},
-    csat_avg:{v:'4,6',m:'↑ vs meta 4,5'},
-    proj:    {v:'14', m:'projetos ativos'},
-    hours:   {v:'—',  m:''},
-  };
-
-  DASHBOARDS.forEach(d=>d.kpis.forEach(k=>{
-    const ve=document.getElementById(`kv-${d.id}-${k.id}`);
-    const me=document.getElementById(`km-${d.id}-${k.id}`);
-    if(ve&&vals[k.id]){
-      ve.className='kval'; ve.textContent=vals[k.id].v;
-      if(me){me.className='kmeta'; me.textContent=vals[k.id].m;}
-    }
-  }));
-  setUpdTime();
+  if(SHEET_KEY) calcRealKPIs(force);
 }
 
 /* ══════════ FILTROS (AC-04) ══════════ */
 function applyFilters(){
   const p=document.getElementById('fPeriod').value;
   const g=document.getElementById('fGP').value;
+  // recarrega KPIs com novo filtro de GP
+  kpiCacheTime=null;
+  sheetsCache={};
+  loadKPIs(true);
   toast(`Filtros: ${p} · GP: ${g==='todos'?'Todos':g}`,'ok');
 }
 
@@ -1030,6 +1210,7 @@ function refreshAll(){
   btn.disabled=true; btn.textContent='⟳ Atualizando…';
   // invalida cache
   kpiCacheTime=null;
+  sheetsCache={};
   DASHBOARDS.forEach(d=>{
     if(!d.url) return;
     setStatus(d.id,'warn');
