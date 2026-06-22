@@ -530,7 +530,7 @@ const DASHBOARDS = [
   {
     id:'hs', title:'Health Score', icon:'💚', tag:'D-01', color:'#27AE60',
     desc:'Qual é a saúde geral de cada cliente? Quem está em risco de churn?',
-    url:'https://fvsilva.github.io/dashnps/?page=health-score',
+    url:'https://fvsilva.github.io/dashnps/?page=health-score&embedded=true',
     kpis:[
       {lbl:'Clientes críticos (HS<4,0)', id:'hs_crit', meta:'Número e % da carteira'},
       {lbl:'HS médio da carteira',       id:'hs_avg',  meta:'Mês atual'},
@@ -539,7 +539,7 @@ const DASHBOARDS = [
   {
     id:'res', title:'Resultados dos Clientes', icon:'📊', tag:'D-02', color:'#2980B9',
     desc:'Os clientes estão batendo as metas de faturamento, ROI, CAC e vendas?',
-    url:'https://fvsilva.github.io/dashnps/?page=resultados',
+    url:'https://fvsilva.github.io/dashnps/?page=resultados&embedded=true',
     kpis:[
       {lbl:'% clientes com meta de ROI', id:'roi_pct', meta:'Mês atual'},
       {lbl:'Faturamento realizado',       id:'fat',     meta:'vs. meta da carteira'},
@@ -548,7 +548,7 @@ const DASHBOARDS = [
   {
     id:'nps', title:'NPS / CSAT', icon:'⭐', tag:'D-03', color:'#8E44AD',
     desc:'Os clientes estão satisfeitos? Como está o NPS e o CSAT da carteira?',
-    url:'https://fvsilva.github.io/dashnps/?page=nps-csat',
+    url:'https://fvsilva.github.io/dashnps/?page=nps-csat&embedded=true',
     kpis:[
       {lbl:'NPS médio da carteira', id:'nps_avg',  meta:'Meta: 65'},
       {lbl:'CSAT médio da carteira',id:'csat_avg', meta:'Meta: 4,5'},
